@@ -1,0 +1,915 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Koleksi KomikKu</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* Custom CSS for additional styling */
+        .comic-card {
+            transition: all 0.3s ease;
+        }
+        .comic-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px -3px rgba(255, 255, 255, 0.1);
+        }
+        .blur-bg {
+            backdrop-filter: blur(5px);
+            background-color: rgba(0, 0, 0, 0.7);
+        }
+        .comic-cover {
+            height: 250px;
+            object-fit: cover;
+            transition: all 0.3s ease;
+        }
+        .comic-cover:hover {
+            transform: scale(1.03);
+        }
+        .rating-stars {
+            color: #fbbf24;
+        }
+        .progress-bar {
+            transition: width 1s ease-in-out;
+        }
+        /* Scrollbar styling */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #1f2937;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #4b5563;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #6b7280;
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-gray-100 min-h-screen">
+    <div class="container mx-auto px-4 py-8">
+        <!-- Header -->
+        <header class="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
+            <div class="flex items-center gap-3 animate__animated animate__fadeInDown">
+                <i class="fas fa-book text-3xl text-purple-500"></i>
+                <h1 class="text-3xl font-bold bg-gradient-to-r from-purple-500 to-pink-500 bg-clip-text text-transparent">
+                    Koleksi KomikKu
+                </h1>
+            </div>
+            
+            <!-- GitHub Config Modal Toggle -->
+            <button id="configBtn" class="flex items-center gap-2 bg-gray-800 hover:bg-gray-700 px-4 py-2 rounded-lg transition-all">
+                <i class="fas fa-cog"></i> <span class="hidden md:inline">Konfigurasi GitHub</span>
+            </button>
+        </header>
+
+        <!-- GitHub Config Modal -->
+        <div id="configModal" class="fixed inset-0 z-50 hidden items-center justify-center px-4">
+            <div class="blur-bg absolute inset-0"></div>
+            <div class="bg-gray-800 rounded-xl p-6 max-w-md w-full relative z-10 animate__animated animate__fadeInUp">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-xl font-bold">Konfigurasi GitHub</h2>
+                    <button id="closeConfig" class="text-gray-400 hover:text-white">
+                        <i class="fas fa-times text-xl"></i>
+                    </button>
+                </div>
+                <div class="space-y-4">
+                    <div>
+                        <label for="githubUsername" class="block mb-2 text-sm font-medium">Username GitHub</label>
+                        <input type="text" id="githubUsername" class="bg-gray-700 border border-gray-600 rounded-lg block w-full p-2.5">
+                    </div>
+                    <div>
+                        <label for="githubRepo" class="block mb-2 text-sm font-medium">Nama Repository</label>
+                        <input type="text" id="githubRepo" class="bg-gray-700 border border-gray-600 rounded-lg block w-full p-2.5">
+                    </div>
+                    <div>
+                        <label for="githubToken" class="block mb-2 text-sm font-medium">Token PAT</label>
+                        <input type="password" id="githubToken" class="bg-gray-700 border border-gray-600 rounded-lg block w-full p-2.5">
+                        <p class="text-xs text-gray-400 mt-1">Token dengan izin repo untuk mengakses GitHub API</p>
+                    </div>
+                    <div class="flex justify-end gap-2 pt-2">
+                        <button id="saveConfig" class="bg-purple-600 hover:bg-purple-700 px-4 py-2 rounded-lg transition-colors">
+                            Simpan Konfigurasi
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Action Bar -->
+        <div class="flex flex-col sm:flex-row justify-between items-center gap-4 mb-8">
+            <!-- Search Bar -->
+            <div class="relative w-full sm:w-96">
+                <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                    <i class="fas fa-search text-gray-400"></i>
+                </div>
+                <input type="text" id="searchInput" class="bg-gray-800 border border-gray-700 text-white rounded-lg block w-full pl-10 p-2.5 focus:ring-2 focus:ring-purple-500 focus:border-transparent" placeholder="Cari berdasarkan judul...">
+            </div>
+            
+            <!-- Add Comic Button -->
+            <button id="addComicBtn" class="flex items-center gap-2 bg-purple-600 hover:bg-purple-700 px-4 py-2.5 rounded-lg transition-colors w-full sm:w-auto justify-center">
+                <i class="fas fa-plus"></i> Tambah Komik
+            </button>
+        </div>
+
+        <!-- Comics Count and Stats -->
+        <div class="bg-gray-800 p-4 rounded-xl mb-8 grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div class="bg-gray-700 p-4 rounded-lg">
+                <h3 class="text-sm text-gray-400 mb-1">Total Koleksi</h3>
+                <p id="totalComics" class="text-2xl font-bold">0</p>
+            </div>
+            <div class="bg-gray-700 p-4 rounded-lg">
+                <h3 class="text-sm text-gray-400 mb-1">Rata-rata Rating</h3>
+                <p id="averageRating" class="text-2xl font-bold">-</p>
+            </div>
+            <div class="bg-gray-700 p-4 rounded-lg">
+                <h3 class="text-sm text-gray-400 mb-1">Terakhir Ditambahkan</h3>
+                <p id="lastAdded" class="text-2xl font-bold">-</p>
+            </div>
+        </div>
+
+        <!-- Comics Collection -->
+        <div id="comicsGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            <!-- Comics will be displayed here -->
+            <div class="text-center py-8 text-gray-500 animate__animated animate__fadeIn">
+                <i class="fas fa-book-open text-5xl mb-4"></i>
+                <p>Belum ada komik yang ditambahkan</p>
+            </div>
+        </div>
+
+        <!-- Add/Edit Comic Modal -->
+        <div id="comicModal" class="fixed inset-0 z-50 hidden items-center justify-center px-4">
+            <div class="blur-bg absolute inset-0"></div>
+            <div class="bg-gray-800 rounded-xl p-6 max-w-2xl w-full relative z-10 animate__animated animate__fadeInUp overflow-y-auto" style="max-height: 90vh;">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 id="modalTitle" class="text-xl font-bold">Tambah Komik Baru</h2>
+                    <button id="closeModal" class="text-gray-400 hover:text-white">
+                        <i class="fas fa-times text-xl"></i>
+                    </button>
+                </div>
+                
+                <form id="comicForm" class="space-y-4">
+                    <input type="hidden" id="comicId">
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <!-- Left Column -->
+                        <div class="space-y-4">
+                            <!-- Cover Image -->
+                            <div>
+                                <label class="block mb-2 text-sm font-medium">Cover Komik</label>
+                                <div class="flex items-center gap-4">
+                                    <div class="relative">
+                                        <img id="coverPreview" src="https://via.placeholder.com/150x225/1f2937/4b5563?text=Pilih+Gambar" alt="Preview Cover" class="rounded-lg comic-cover w-full border border-gray-700">
+                                        <div class="absolute bottom-2 right-2">
+                                            <label for="coverInput" class="cursor-pointer bg-gray-700 hover:bg-gray-600 p-2 rounded-full inline-block">
+                                                <i class="fas fa-edit"></i>
+                                            </label>
+                                            <input type="file" id="coverInput" class="hidden" accept="image/*">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div>
+                                <label for="title" class="block mb-2 text-sm font-medium">Judul Komik*</label>
+                                <input type="text" id="title" required class="bg-gray-700 border border-gray-600 rounded-lg block w-full p-2.5">
+                            </div>
+                            
+                            <div>
+                                <label for="chapter" class="block mb-2 text-sm font-medium">Chapter*</label>
+                                <input type="text" id="chapter" required class="bg-gray-700 border border-gray-600 rounded-lg block w-full p-2.5" placeholder="Contoh: 45 atau Vol. 5 Chapter 23">
+                            </div>
+                        </div>
+                        
+                        <!-- Right Column -->
+                        <div class="space-y-4">
+                            <div>
+                                <label for="type" class="block mb-2 text-sm font-medium">Tipe Komik*</label>
+                                <select id="type" required class="bg-gray-700 border border-gray-600 rounded-lg block w-full p-2.5">
+                                    <option value="">Pilih tipe...</option>
+                                    <option value="Manga">Manga</option>
+                                    <option value="Manhwa">Manhwa</option>
+                                    <option value="Manhua">Manhua</option>
+                                    <option value="Webtoon">Webtoon</option>
+                                    <option value="Komik Lokal">Komik Lokal</option>
+                                </select>
+                            </div>
+                            
+                            <div>
+                                <label for="fansub" class="block mb-2 text-sm font-medium">Fansub/Scanlation</label>
+                                <input type="text" id="fansub" class="bg-gray-700 border border-gray-600 rounded-lg block w-full p-2.5" placeholder="Contoh: Shinigami, FTeam">
+                            </div>
+                            
+                            <div>
+                                <label for="rating" class="block mb-2 text-sm font-medium">Rating (0-10)</label>
+                                <div class="flex items-center gap-2">
+                                    <input type="range" id="rating" min="0" max="10" step="0.1" value="0" class="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer">
+                                    <span id="ratingValue" class="w-16 text-center">0</span>
+                                </div>
+                                <div class="flex justify-between text-xs text-gray-400 px-1 mt-1">
+                                    <span>0</span>
+                                    <span>5</span>
+                                    <span>10</span>
+                                </div>
+                                <div class="rating-stars flex justify-center gap-1 mt-2" id="starsDisplay"></div>
+                            </div>
+                            
+                            <div>
+                                <label for="date" class="block mb-2 text-sm font-medium">Tanggal Baca*</label>
+                                <input type="date" id="date" required class="bg-gray-700 border border-gray-600 rounded-lg block w-full p-2.5">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="flex justify-end gap-2 pt-4">
+                        <button type="button" id="cancelBtn" class="bg-gray-700 hover:bg-gray-600 px-4 py-2 rounded-lg transition-colors">
+                            Batal
+                        </button>
+                        <button type="submit" id="submitBtn" class="bg-purple-600 hover:bg-purple-700 px-4 py-2 rounded-lg transition-colors">
+                            Simpan Komik
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Notification Toast -->
+        <div id="toast" class="fixed bottom-4 right-4 hidden">
+            <div class="bg-gray-800 border-l-4 border-purple-500 px-6 py-4 rounded-lg shadow-lg flex items-center gap-3 animate__animated animate__fadeInRight">
+                <i class="fas fa-check-circle text-green-400 text-xl"></i>
+                <div>
+                    <div id="toastTitle" class="font-bold"></div>
+                    <div id="toastMessage" class="text-sm text-gray-300"></div>
+                </div>
+                <button id="closeToast" class="text-gray-400 hover:text-white ml-4">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Delete Confirmation Modal -->
+        <div id="deleteModal" class="fixed inset-0 z-50 hidden items-center justify-center px-4">
+            <div class="blur-bg absolute inset-0"></div>
+            <div class="bg-gray-800 rounded-xl p-6 max-w-md w-full relative z-10 animate__animated animate__fadeInUp">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-xl font-bold text-red-500">Konfirmasi Hapus</h2>
+                    <button id="closeDeleteModal" class="text-gray-400 hover:text-white">
+                        <i class="fas fa-times text-xl"></i>
+                    </button>
+                </div>
+                <p class="mb-6">Anda yakin ingin menghapus komik <span id="deleteTitle" class="font-bold"></span> dari koleksi? Tindakan ini tidak dapat dibatalkan.</p>
+                <div class="flex justify-end gap-2">
+                    <button id="cancelDelete" class="bg-gray-700 hover:bg-gray-600 px-4 py-2 rounded-lg transition-colors">
+                        Batal
+                    </button>
+                    <button id="confirmDelete" class="bg-red-600 hover:bg-red-700 px-4 py-2 rounded-lg transition-colors">
+                        Hapus
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // DOM Elements
+        const configBtn = document.getElementById('configBtn');
+        const configModal = document.getElementById('configModal');
+        const closeConfig = document.getElementById('closeConfig');
+        const saveConfig = document.getElementById('saveConfig');
+        const githubUsername = document.getElementById('githubUsername');
+        const githubRepo = document.getElementById('githubRepo');
+        const githubToken = document.getElementById('githubToken');
+        
+        const addComicBtn = document.getElementById('addComicBtn');
+        const comicModal = document.getElementById('comicModal');
+        const closeModal = document.getElementById('closeModal');
+        const cancelBtn = document.getElementById('cancelBtn');
+        const modalTitle = document.getElementById('modalTitle');
+        const comicForm = document.getElementById('comicForm');
+        const submitBtn = document.getElementById('submitBtn');
+        const comicId = document.getElementById('comicId');
+        
+        const coverInput = document.getElementById('coverInput');
+        const coverPreview = document.getElementById('coverPreview');
+        const title = document.getElementById('title');
+        const chapter = document.getElementById('chapter');
+        const type = document.getElementById('type');
+        const fansub = document.getElementById('fansub');
+        const rating = document.getElementById('rating');
+        const ratingValue = document.getElementById('ratingValue');
+        const starsDisplay = document.getElementById('starsDisplay');
+        const date = document.getElementById('date');
+        
+        const comicsGrid = document.getElementById('comicsGrid');
+        const searchInput = document.getElementById('searchInput');
+        
+        const toast = document.getElementById('toast');
+        const toastTitle = document.getElementById('toastTitle');
+        const toastMessage = document.getElementById('toastMessage');
+        const closeToast = document.getElementById('closeToast');
+        
+        const deleteModal = document.getElementById('deleteModal');
+        const closeDeleteModal = document.getElementById('closeDeleteModal');
+        const cancelDelete = document.getElementById('cancelDelete');
+        const confirmDelete = document.getElementById('confirmDelete');
+        const deleteTitle = document.getElementById('deleteTitle');
+        
+        const totalComics = document.getElementById('totalComics');
+        const averageRating = document.getElementById('averageRating');
+        const lastAdded = document.getElementById('lastAdded');
+        
+        // App Variables
+        let comics = [];
+        let currentComicId = null;
+        let githubConfig = {};
+        let currentCoverBase64 = null;
+        
+        // Initialize the app
+        document.addEventListener('DOMContentLoaded', function() {
+            // Load config from localStorage
+            const savedConfig = localStorage.getItem('githubConfig');
+            if (savedConfig) {
+                githubConfig = JSON.parse(savedConfig);
+                githubUsername.value = githubConfig.username || '';
+                githubRepo.value = githubConfig.repository || '';
+                githubToken.value = githubConfig.token ? '••••••••••••' : '';
+            }
+            
+            // Load comics from localStorage if no GitHub config exists
+            if (!savedConfig) {
+                const savedComics = localStorage.getItem('comics');
+                if (savedComics) {
+                    comics = JSON.parse(savedComics);
+                    renderComics();
+                    updateStats();
+                }
+            } else {
+                // Try to load from GitHub
+                loadComicsFromGitHub();
+            }
+            
+            // Set today's date as default
+            date.valueAsDate = new Date();
+            
+            // Event Listeners
+            configBtn.addEventListener('click', () => {
+                configModal.classList.remove('hidden');
+                configModal.classList.add('flex');
+            });
+            
+            closeConfig.addEventListener('click', () => {
+                configModal.classList.add('hidden');
+                configModal.classList.remove('flex');
+            });
+            
+            saveConfig.addEventListener('click', saveConfigHandler);
+            
+            addComicBtn.addEventListener('click', () => {
+                showComicModal('Tambah Komik Baru');
+            });
+            
+            closeModal.addEventListener('click', closeComicModal);
+            cancelBtn.addEventListener('click', closeComicModal);
+            
+            comicForm.addEventListener('submit', saveComicHandler);
+            
+            coverInput.addEventListener('change', handleCoverUpload);
+            
+            rating.addEventListener('input', updateRatingDisplay);
+            
+            searchInput.addEventListener('input', function() {
+                const searchTerm = this.value.toLowerCase();
+                filterComics(searchTerm);
+            });
+            
+            closeToast.addEventListener('click', () => {
+                toast.classList.add('hidden');
+            });
+            
+            closeDeleteModal.addEventListener('click', () => {
+                deleteModal.classList.add('hidden');
+            });
+            
+            cancelDelete.addEventListener('click', () => {
+                deleteModal.classList.add('hidden');
+            });
+            
+            confirmDelete.addEventListener('click', deleteComicHandler);
+            
+            // Initial rating display
+            updateRatingDisplay();
+        });
+        
+        // Functions
+        function saveConfigHandler() {
+            if (!githubUsername.value || !githubRepo.value || !githubToken.value) {
+                showToast('Error', 'Harap isi semua field konfigurasi', 'error');
+                return;
+            }
+            
+            githubConfig = {
+                username: githubUsername.value,
+                repository: githubRepo.value,
+                token: githubToken.value === '••••••••••••' ? githubConfig.token : githubToken.value
+            };
+            
+            localStorage.setItem('githubConfig', JSON.stringify(githubConfig));
+            configModal.classList.add('hidden');
+            configModal.classList.remove('flex');
+            showToast('Berhasil', 'Konfigurasi GitHub berhasil disimpan');
+            
+            // Try to load comics from GitHub
+            loadComicsFromGitHub();
+        }
+        
+        function loadComicsFromGitHub() {
+            if (!githubConfig.username || !githubConfig.repository || !githubConfig.token) return;
+            
+            const url = `https://api.github.com/repos/${githubConfig.username}/${githubConfig.repository}/contents/bookmarks.json`;
+            
+            fetch(url, {
+                headers: {
+                    'Authorization': `token ${githubConfig.token}`,
+                    'Accept': 'application/vnd.github.v3+json'
+                }
+            }).then(response => {
+                if (!response.ok) {
+                    // File not found (404) means first time use, we'll create it later
+                    if (response.status === 404) {
+                        console.log('File bookmarks.json belum ada, akan dibuat saat menambah komik pertama');
+                        if (localStorage.getItem('comics')) {
+                            // If we have local comics, try to sync them to GitHub
+                            syncLocalToGitHub();
+                        }
+                        return Promise.resolve();
+                    }
+                    throw new Error('Gagal memuat dari GitHub');
+                }
+                return response.json();
+            }).then(data => {
+                if (!data) return;
+                
+                const content = atob(data.content);
+                comics = JSON.parse(content);
+                localStorage.setItem('comics', JSON.stringify(comics));
+                renderComics();
+                updateStats();
+            }).catch(error => {
+                console.error('Error loading from GitHub:', error);
+                // Fallback to localStorage if available
+                const savedComics = localStorage.getItem('comics');
+                if (savedComics) {
+                    comics = JSON.parse(savedComics);
+                    renderComics();
+                    updateStats();
+                }
+                showToast('Error', 'Gagal memuat dari GitHub. Menggunakan data lokal.', 'error');
+            });
+        }
+        
+        function syncLocalToGitHub() {
+            const savedComics = localStorage.getItem('comics');
+            if (!savedComics || !githubConfig.token) return;
+            
+            comics = JSON.parse(savedComics);
+            
+            const url = `https://api.github.com/repos/${githubConfig.username}/${githubConfig.repository}/contents/bookmarks.json`;
+            const message = 'Sync komik dari penyimpanan lokal';
+            const content = btoa(unescape(encodeURIComponent(JSON.stringify(comics, null, 2))));
+            
+            // First check if file exists to get SHA if it does
+            fetch(url, {
+                headers: {
+                    'Authorization': `token ${githubConfig.token}`,
+                    'Accept': 'application/vnd.github.v3+json'
+                }
+            }).then(response => {
+                const body = {
+                    message,
+                    content,
+                    sha: response.ok ? response.json().then(data => data.sha) : undefined
+                };
+                
+                return fetch(url, {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `token ${githubConfig.token}`,
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/vnd.github.v3+json'
+                    },
+                    body: JSON.stringify(body)
+                });
+            }).then(response => {
+                if (!response.ok) throw new Error('Gagal menyinkronkan ke GitHub');
+                return response.json();
+            }).then(data => {
+                console.log('Berhasil menyinkronkan ke GitHub:', data);
+                showToast('Berhasil', 'Data lokal berhasil disinkronkan ke GitHub');
+            }).catch(error => {
+                console.error('Error syncing to GitHub:', error);
+                showToast('Error', 'Gagal menyinkronkan ke GitHub. Data disimpan lokal.', 'error');
+            });
+        }
+        
+        function saveComicToGitHub() {
+            if (!githubConfig.token) {
+                // No GitHub config, just save to localStorage
+                localStorage.setItem('comics', JSON.stringify(comics));
+                showToast('Berhasil', 'Komik berhasil disimpan di penyimpanan lokal');
+                return Promise.resolve();
+            }
+            
+            const url = `https://api.github.com/repos/${githubConfig.username}/${githubConfig.repository}/contents/bookmarks.json`;
+            const message = currentComicId ? 'Update komik' : 'Tambah komik baru';
+            const content = btoa(unescape(encodeURIComponent(JSON.stringify(comics, null, 2))));
+            
+            // First check if file exists to get SHA if it does
+            return fetch(url, {
+                headers: {
+                    'Authorization': `token ${githubConfig.token}`,
+                    'Accept': 'application/vnd.github.v3+json'
+                }
+            }).then(response => {
+                const body = {
+                    message,
+                    content,
+                    sha: response.ok ? response.json().then(data => data.sha) : undefined
+                };
+                
+                return fetch(url, {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `token ${githubConfig.token}`,
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/vnd.github.v3+json'
+                    },
+                    body: JSON.stringify(body)
+                });
+            }).then(response => {
+                if (!response.ok) throw new Error('Gagal menyimpan ke GitHub');
+                return response.json();
+            }).then(data => {
+                console.log('Berhasil menyimpan ke GitHub:', data);
+                localStorage.setItem('comics', JSON.stringify(comics));
+                showToast('Berhasil', currentComicId ? 'Komik berhasil diperbarui' : 'Komik baru berhasil ditambahkan');
+                return true;
+            }).catch(error => {
+                console.error('Error saving to GitHub:', error);
+                // Fallback to localStorage
+                localStorage.setItem('comics', JSON.stringify(comics));
+                showToast(
+                    'Peringatan', 
+                    currentComicId ? 'Komik berhasil diperbarui di lokal' : 'Komik baru berhasil ditambahkan di lokal', 
+                    'warning'
+                );
+                return false;
+            });
+        }
+        
+        function showComicModal(titleText, comicData = null) {
+            modalTitle.textContent = titleText;
+            comicId.value = comicData ? comicData.id : '';
+            currentComicId = comicData ? comicData.id : null;
+            
+            // Reset form
+            if (!comicData) {
+                comicForm.reset();
+                coverPreview.src = "https://via.placeholder.com/150x225/1f2937/4b5563?text=Pilih+Gambar";
+                currentCoverBase64 = null;
+                date.valueAsDate = new Date();
+                rating.value = 0;
+                updateRatingDisplay();
+            } else {
+                // Fill form with comic data
+                title.value = comicData.title;
+                chapter.value = comicData.chapter;
+                type.value = comicData.type;
+                fansub.value = comicData.fansub || '';
+                rating.value = comicData.rating || 0;
+                date.value = comicData.date;
+                
+                if (comicData.cover) {
+                    coverPreview.src = comicData.cover;
+                    currentCoverBase64 = comicData.cover;
+                } else {
+                    coverPreview.src = "https://via.placeholder.com/150x225/1f2937/4b5563?text=No+Cover";
+                    currentCoverBase64 = null;
+                }
+                
+                updateRatingDisplay();
+            }
+            
+            comicModal.classList.remove('hidden');
+            comicModal.classList.add('flex');
+            
+            // Focus on first input
+            setTimeout(() => {
+                document.querySelector('#comicForm input').focus();
+            }, 100);
+        }
+        
+        function closeComicModal() {
+            comicModal.classList.add('hidden');
+            comicModal.classList.remove('flex');
+        }
+        
+        function handleCoverUpload(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            
+            if (!file.type.match('image.*')) {
+                showToast('Error', 'Harap pilih file gambar', 'error');
+                return;
+            }
+            
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                coverPreview.src = event.target.result;
+                currentCoverBase64 = event.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+        
+        function updateRatingDisplay() {
+            const value = parseFloat(rating.value);
+            ratingValue.textContent = value.toFixed(1);
+            
+            // Update stars display
+            starsDisplay.innerHTML = '';
+            const fullStars = Math.floor(value / 2);
+            const hasHalfStar = value % 2 >= 1;
+            
+            for (let i = 0; i < 5; i++) {
+                const star = document.createElement('i');
+                if (i < fullStars) {
+                    star.className = 'fas fa-star';
+                } else if (i === fullStars && hasHalfStar) {
+                    star.className = 'fas fa-star-half-alt';
+                } else {
+                    star.className = 'far fa-star';
+                }
+                starsDisplay.appendChild(star);
+            }
+        }
+        
+        function generateId() {
+            return Date.now().toString(36) + Math.random().toString(36).substr(2);
+        }
+        
+        function saveComicHandler(e) {
+            e.preventDefault();
+            
+            if (!title.value || !chapter.value || !type.value || !date.value) {
+                showToast('Error', 'Harap isi semua field yang wajib', 'error');
+                return;
+            }
+            
+            const ratingVal = parseFloat(rating.value);
+            
+            const comicData = {
+                id: currentComicId || generateId(),
+                title: title.value,
+                chapter: chapter.value,
+                type: type.value,
+                fansub: fansub.value,
+                rating: ratingVal,
+                date: date.value,
+                cover: currentCoverBase64,
+                updatedAt: new Date().toISOString()
+            };
+            
+            if (currentComicId) {
+                // Update existing comic
+                const index = comics.findIndex(c => c.id === currentComicId);
+                if (index !== -1) {
+                    comics[index] = comicData;
+                }
+            } else {
+                // Add new comic
+                comics.push(comicData);
+            }
+            
+            // Disable button while saving
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Menyimpan...';
+            
+            saveComicToGitHub().then(success => {
+                renderComics();
+                updateStats();
+                closeComicModal();
+            }).finally(() => {
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Simpan Komik';
+            });
+        }
+        
+        function showDeleteConfirmation(comic) {
+            deleteTitle.textContent = `"${comic.title}"`;
+            deleteModal.classList.remove('hidden');
+            currentComicId = comic.id;
+        }
+        
+        function deleteComicHandler() {
+            if (!currentComicId) return;
+            
+            const index = comics.findIndex(c => c.id === currentComicId);
+            if (index === -1) return;
+            
+            const comicTitle = comics[index].title;
+            comics.splice(index, 1);
+            
+            confirmDelete.disabled = true;
+            confirmDelete.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Menghapus...';
+            
+            saveComicToGitHub().then(success => {
+                renderComics();
+                updateStats();
+                deleteModal.classList.add('hidden');
+                showToast('Berhasil', `Komik "${comicTitle}" berhasil dihapus`);
+            }).finally(() => {
+                confirmDelete.disabled = false;
+                confirmDelete.textContent = 'Hapus';
+                currentComicId = null;
+            });
+        }
+        
+        function renderComics(comicsToRender = comics) {
+            if (comicsToRender.length === 0) {
+                comicsGrid.innerHTML = `
+                    <div class="text-center py-8 text-gray-500 animate__animated animate__fadeIn col-span-full">
+                        <i class="fas fa-book-open text-5xl mb-4"></i>
+                        <p>Belum ada komik yang ditambahkan</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            comicsGrid.innerHTML = '';
+            
+            comicsToRender.sort((a, b) => new Date(b.date) - new Date(a.date)).forEach(comic => {
+                const comicCard = document.createElement('div');
+                comicCard.className = 'comic-card bg-gray-800 rounded-xl overflow-hidden shadow-lg border border-gray-700';
+                comicCard.innerHTML = `
+                    <div class="relative">
+                        <img src="${comic.cover || 'https://via.placeholder.com/150x225/1f2937/4b5563?text=No+Cover'}" 
+                             alt="${comic.title}" 
+                             class="comic-cover w-full h-48 object-cover">
+                        <div class="absolute top-2 left-2">
+                            <span class="bg-gray-900 bg-opacity-80 text-xs px-2 py-1 rounded-md">${comic.type}</span>
+                        </div>
+                        <div class="absolute top-2 right-2">
+                            <span class="bg-amber-600 text-xs font-bold px-2 py-1 rounded-md">${comic.rating ? comic.rating.toFixed(1) : '-'}</span>
+                        </div>
+                    </div>
+                    <div class="p-4">
+                        <h3 class="font-bold text-lg mb-1 line-clamp-1" title="${comic.title}">${comic.title}</h3>
+                        <div class="text-sm text-gray-400 mb-2 flex items-center gap-2">
+                            <i class="fas fa-bookmark"></i> 
+                            <span>Ch. ${comic.chapter}</span>
+                        </div>
+                        ${comic.fansub ? `
+                        <div class="text-sm text-gray-400 mb-2 flex items-center gap-2">
+                            <i class="fas fa-users"></i>
+                            <span>${comic.fansub}</span>
+                        </div>` : ''}
+                        <div class="text-sm text-gray-400 flex items-center gap-2">
+                            <i class="far fa-calendar-alt"></i>
+                            <span>${formatDate(comic.date)}</span>
+                        </div>
+                        <div class="flex justify-end gap-2 mt-3">
+                            <button class="edit-btn bg-gray-700 hover:bg-gray-600 p-2 rounded-lg transition-colors" data-id="${comic.id}">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="delete-btn bg-red-600 hover:bg-red-700 p-2 rounded-lg transition-colors" data-id="${comic.id}">
+                                <i class="fas fa-trash-alt"></i>
+                            </button>
+                        </div>
+                    </div>
+                `;
+                
+                comicsGrid.appendChild(comicCard);
+            });
+            
+            // Add event listeners to new buttons
+            document.querySelectorAll('.edit-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const comicId = this.getAttribute('data-id');
+                    const comic = comics.find(c => c.id === comicId);
+                    if (comic) {
+                        showComicModal('Edit Komik', comic);
+                    }
+                });
+            });
+            
+            document.querySelectorAll('.delete-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const comicId = this.getAttribute('data-id');
+                    const comic = comics.find(c => c.id === comicId);
+                    if (comic) {
+                        showDeleteConfirmation(comic);
+                    }
+                });
+            });
+        }
+        
+        function filterComics(searchTerm) {
+            if (!searchTerm) {
+                renderComics();
+                return;
+            }
+            
+            const filtered = comics.filter(comic => 
+                comic.title.toLowerCase().includes(searchTerm) ||
+                (comic.fansub && comic.fansub.toLowerCase().includes(searchTerm))
+            );
+            
+            renderComics(filtered);
+            
+            if (filtered.length === 0) {
+                comicsGrid.innerHTML = `
+                    <div class="text-center py-8 text-gray-500 col-span-full animate__animated animate__fadeIn">
+                        <i class="fas fa-search text-5xl mb-4"></i>
+                        <p>Tidak ditemukan komik dengan kata kunci "${searchTerm}"</p>
+                    </div>
+                `;
+            }
+        }
+        
+        function updateStats() {
+            totalComics.textContent = comics.length;
+            
+            if (comics.length > 0) {
+                // Calculate average rating
+                const totalRating = comics.reduce((sum, comic) => sum + (comic.rating || 0), 0);
+                const avgRating = totalRating / comics.length;
+                averageRating.textContent = avgRating.toFixed(1);
+                
+                // Get last added date
+                const lastComic = [...comics].sort((a, b) => new Date(b.date) - new Date(a.date))[0];
+                lastAdded.textContent = formatDate(lastComic.date, true);
+            } else {
+                averageRating.textContent = '-';
+                lastAdded.textContent = '-';
+            }
+        }
+        
+        function formatDate(dateStr, short = false) {
+            const date = new Date(dateStr);
+            if (short) {
+                return date.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
+            }
+            return date.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+        }
+        
+        function showToast(title, message, type = 'success') {
+            toastTitle.textContent = title;
+            toastMessage.textContent = message;
+            
+            // Set icon and color based on type
+            let iconClass, borderColor;
+            switch (type) {
+                case 'error':
+                    iconClass = 'fas fa-times-circle text-red-400';
+                    borderColor = 'border-red-500';
+                    break;
+                case 'warning':
+                    iconClass = 'fas fa-exclamation-circle text-yellow-400';
+                    borderColor = 'border-yellow-500';
+                    break;
+                default:
+                    iconClass = 'fas fa-check-circle text-green-400';
+                    borderColor = 'border-green-500';
+            }
+            
+            toast.innerHTML = `
+                <div class="bg-gray-800 border-l-4 ${borderColor} px-6 py-4 rounded-lg shadow-lg flex items-center gap-3 animate__animated animate__fadeInRight">
+                    <i class="${iconClass} text-xl"></i>
+                    <div>
+                        <div class="font-bold">${title}</div>
+                        <div class="text-sm text-gray-300">${message}</div>
+                    </div>
+                    <button class="text-gray-400 hover:text-white ml-4">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            `;
+            
+            // Add event listener to the new close button
+            toast.querySelector('button').addEventListener('click', () => {
+                toast.classList.add('hidden');
+            });
+            
+            toast.classList.remove('hidden');
+            
+            // Auto hide after 5 seconds
+            setTimeout(() => {
+                toast.classList.add('hidden');
+            }, 5000);
+        }
+    </script>
+</body>
+</html>
